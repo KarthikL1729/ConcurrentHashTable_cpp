@@ -35,6 +35,7 @@ struct SharedMemory {
     size_t client_id;
     size_t server_id;
     pthread_mutex_t mtx;
+    pthread_cond_t shutdown_cond;
 };
 
 void perform_insert(SharedMemory* shm, int key, int value) {

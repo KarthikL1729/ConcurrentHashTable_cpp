@@ -80,6 +80,7 @@ int main() {
     cout << "T2 deletes: " << t2_deletes << endl;
     pthread_mutex_lock(&shared_mem->mtx);
     shared_mem->done = true;
+    pthread_cond_signal(&shared_mem->shutdown_cond);
     pthread_mutex_unlock(&shared_mem->mtx);
     
     munmap(shared_mem, SHM_SIZE);

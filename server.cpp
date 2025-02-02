@@ -34,6 +34,12 @@ int main(int argc, char* argv[]) {
     shared_mem->server_id = 0;
     pthread_mutex_unlock(&shared_mem->mtx);
 
+    pthread_condattr_t cond_attr;
+    pthread_condattr_init(&cond_attr);
+    pthread_condattr_setpshared(&cond_attr, PTHREAD_PROCESS_SHARED);
+    pthread_cond_init(&shared_mem->shutdown_cond, &cond_attr);
+    pthread_condattr_destroy(&cond_attr);
+
     ConcurrentHashTable<int, int> hash_table(num_buckets);
 
     const int num_workers = 4;
@@ -82,13 +88,11 @@ int main(int argc, char* argv[]) {
         });
     }
 
-    while (true) {
-        pthread_mutex_lock(&shared_mem->mtx);
-        bool shared_done = shared_mem->done;
-        pthread_mutex_unlock(&shared_mem->mtx);
-        if (shared_done) break;
-        this_thread::sleep_for(chrono::milliseconds(100));
+    pthread_mutex_lock(&shared_mem->mtx);
+    while (!shared_mem->done) {
+        pthread_cond_wait(&shared_mem->shutdown_cond, &shared_mem->mtx); 
     }
+    pthread_mutex_unlock(&shared_mem->mtx);
     done.store(true);
 
     for (auto& worker : workers) {

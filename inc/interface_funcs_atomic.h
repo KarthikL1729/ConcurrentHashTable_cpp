@@ -39,7 +39,7 @@ void perform_insert(SharedMemory* shm, int key, int value) {
     size_t current_client;
     size_t next_client;
     do {
-        current_client = shm->client_id.load(memory_order_relaxed);
+        current_client = shm->client_id.load(memory_order_acquire);
         next_client = (current_client + 1) % QUEUE_SIZE;
     } while (!shm->client_id.compare_exchange_weak(
         current_client, next_client,
@@ -58,7 +58,7 @@ void perform_read(SharedMemory* shm, int key) {
     size_t current_client;
     size_t next_client;
     do {
-        current_client = shm->client_id.load(memory_order_relaxed);
+        current_client = shm->client_id.load(memory_order_acquire);
         next_client = (current_client + 1) % QUEUE_SIZE;
     } while (!shm->client_id.compare_exchange_weak(
         current_client, next_client,
@@ -76,7 +76,7 @@ void perform_delete(SharedMemory* shm, int key) {
     size_t current_client;
     size_t next_client;
     do {
-        current_client = shm->client_id.load(memory_order_relaxed);
+        current_client = shm->client_id.load(memory_order_acquire);
         next_client = (current_client + 1) % QUEUE_SIZE;
     } while (!shm->client_id.compare_exchange_weak(
         current_client, next_client,

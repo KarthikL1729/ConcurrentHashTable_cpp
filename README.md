@@ -40,6 +40,7 @@ struct SharedMemory {
     size_t client_id;
     size_t server_id;
     pthread_mutex_t mtx;
+    pthread_cond_t shutdown_cond;
 };
 ```
 
@@ -78,6 +79,8 @@ All the client programs will need the server program to be running to run succes
 
 My initial experiments showed that while the mutex worked, it seemed to be quite a bit slower than just one thread running the operations (i.e. not needing synchronization overheads), hence not really using the concurrency feature of the hash table. I searched for alternative approaches to a mutex based concurrency model, and found that a lock-free approach using atomic variables and compare-and-swap (CAS) operations could be used. The hash tabale itself still uses a `shared_mutex` for the buckets, but the server and client programs use a lock-free queue to store and process requests. The `inc/interface_funcs_atomic.h`, `tests/client_multithread_atomic.cpp` and `server_atomic.cpp` files demonstrate this approach. This approach achieved a very large speedup compared to the mutex based approach, and was able to perform far more operations in the same time frame.
 
-*Note:* All the programs were compiled using g++ version 13.3.0 on WSL with Ubuntu 24.04 and WSL2 kernel version 5.15.167.4. They have also been tested on Ubuntu 20.04 with g++ version 9.4.0 and kernel version 5.4.0-202-generic.
+**Limitations**: Some of the atomic operations use `memory_order_relaxed` for performance, since this was mainly an experiment to see how much more performant a lock-free approach could be. On further experimentation, these relaxed memory orders lead to data races when the queue size is small and there are multiple workers. So this approach must only be used with a sufficiently large queue size. 
+
+*Note:* All the programs were compiled using g++ version 13.3.0 on WSL with Ubuntu 24.04 and WSL2 kernel version 5.15.167.4. They have also been tested on Ubuntu 20.04 with g++ version 9.4.0 and kernel version 5.4.0-202-generic. `fsanitize` was used for checking thread safety, and is not necessary for normal compilation. The flag does not work with gcc version 9.4.0 as tested and should be removed in that case for compilation.
 
 ---
